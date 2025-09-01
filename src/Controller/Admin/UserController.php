@@ -13,17 +13,16 @@ namespace App\Controller\Admin;
 
 use App\Entity\Post;
 use App\Entity\User;
-use App\Form\UserType;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Form\Extension\Core\Type\SubmitType;
-use Symfony\Component\Form\SubmitButton;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Serializer\SerializerInterface;
 
 /**
  * Controller used to manage blog contents in the backend.
@@ -54,7 +53,7 @@ final class UserController extends AbstractController
     #[Route('/', name: 'admin_index', methods: ['GET'])]
     #[Route('/', name: 'admin_user_index', methods: ['GET'])]
     public function index(
-        UserRepository $users,
+        UserRepository $users
     ): Response {
         $allUsers = $users->findAll(['createdAt' => 'DESC']);
 
@@ -83,72 +82,55 @@ final class UserController extends AbstractController
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
-    ): Response {
+        SerializerInterface $serializer
+    ): JsonResponse {
         $user = new User();
-        $parameters = json_decode($request->getContent(), true);
+        $data = json_decode($request->getContent(), true);
 
-        if (!isset($parameters['email']) || empty($parameters['email'])) {
+        if (!isset($data['email']) || empty($data['email'])) {
             return $this->json(['error' => 'Email is required'], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($parameters['username']) || empty($parameters['username'])) {
+        if (!isset($data['username']) || empty($data['username'])) {
             return $this->json(['error' => 'Username is required'], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($parameters['fullName']) || empty($parameters['fullName'])) {
+        if (!isset($data['fullName']) || empty($data['fullName'])) {
             return $this->json(['error' => 'Full name is required'], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($parameters['password']) || empty($parameters['password'])) {
+        if (!isset($data['password']) || empty($data['password'])) {
             return $this->json(['error' => 'Password is required'], Response::HTTP_BAD_REQUEST);
         }
 
-        $user->setEmail($parameters['email']);
-        $user->setUsername($parameters['username']);
-        $user->setFullName($parameters['fullName']);
-        $user->setPassword($parameters['password']);
-        $user->setRoles($parameters['roles'] ?? [User::ROLE_USER]);
-        $user->setCreatedAt();
-        $user->setModifiedAt();
-
+        $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $user]);
 
         $entityManager->persist($user);
         $entityManager->flush();
 
-        return $this->json($user, Response::HTTP_CREATED);
+        return new JsonResponse($serializer->serialize($user, 'json'), Response::HTTP_CREATED, [], true);
     }
 
     /**
      * Finds and displays a User entity.
      */
     #[Route('/{id:user}', name: 'admin_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
-    public function show(User $user): Response
+    public function show(User $user, SerializerInterface $serializer): JsonResponse
     {
-        // This security check can also be performed
-        // using a PHP attribute: #[IsGranted('show', subject: 'user', message: 'Users can only be shown to their authors.')]
-        return $this->render('admin/blog/show.html.twig', [
-            'post' => $post,
-        ]);
+        return new JsonResponse($serializer->serialize($user, 'json'), Response::HTTP_OK, [], true);
     }
 
     /**
-     * Displays a form to edit an existing Post entity.
+     * Displays a form to edit an existing User entity.
      */
-    #[Route('/{id:post}/edit', name: 'admin_post_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET', 'POST'])]
-    #[IsGranted('edit', subject: 'post', message: 'Posts can only be edited by their authors.')]
-    public function edit(Request $request, Post $post, EntityManagerInterface $entityManager): Response
+    #[Route('/{id:user}/edit', name: 'admin_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
+    public function edit(Request $request, User $user, UserRepository $users, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
     {
-        $form = $this->createForm(PostType::class, $post);
-        $form->handleRequest($request);
+        $foundUserToEdit = $users->findOneBy(['id' => $user->getId()]);
 
-        if ($form->isSubmitted() && $form->isValid()) {
-            $entityManager->flush();
-            $this->addFlash('success', 'post.updated_successfully');
+        $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $foundUserToEdit]);
 
-            return $this->redirectToRoute('admin_post_edit', ['id' => $post->getId()], Response::HTTP_SEE_OTHER);
-        }
+        $entityManager->persist($foundUserToEdit);
+        $entityManager->flush();
 
-        return $this->render('admin/blog/edit.html.twig', [
-            'post' => $post,
-            'form' => $form,
-        ]);
+        return new JsonResponse($serializer->serialize($foundUserToEdit, 'json'), Response::HTTP_OK, [], true);
     }
 
     /**
