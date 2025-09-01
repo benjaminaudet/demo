@@ -59,13 +59,35 @@ final class BlogController extends AbstractController
 
         $latestPosts = $posts->findLatest($page, $tag);
 
-        // Every template name also has two extensions that specify the format and
-        // engine for that template.
-        // See https://symfony.com/doc/current/templates.html#template-naming
-        return $this->render('blog/index.'.$_format.'.twig', [
-            'paginator' => $latestPosts,
-            'tagName' => $tag?->getName(),
-        ]);
+        $postsGenerator = (function () use ($latestPosts) {
+            foreach ($latestPosts->getResults() as $post) {
+                yield [
+                    'id' => $post->getId(),
+                    'title' => $post->getTitle(),
+                    'slug' => $post->getSlug(),
+                    'summary' => $post->getSummary(),
+                    'content' => $post->getContent(),
+                    'author' => [
+                        'id' => $post->getAuthor()->getId(),
+                        'fullName' => $post->getAuthor()->getFullName(),
+                    ],
+                    'comments' => $post->getComments()->map(fn(Comment $comment) => [
+                        'id' => $comment->getId(),
+                        'content' => $comment->getContent(),
+                        'author' => [
+                            'id' => $comment->getAuthor()->getId(),
+                            'fullName' => $comment->getAuthor()->getFullName(),
+                        ],
+                    ])->toArray(),
+                    'tags' => $post->getTags()->map(fn($tag) => [
+                        'id' => $tag->getId(),
+                        'name' => $tag->getName(),
+                    ])->toArray(),
+                ];
+            }
+        })();
+
+        return $this->json(iterator_to_array($postsGenerator), Response::HTTP_OK);
     }
 
     /**
