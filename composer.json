@@ -15,6 +15,7 @@
         "doctrine/doctrine-migrations-bundle": "^3.3",
         "doctrine/orm": "^3.0",
         "league/commonmark": "^2.1",
+        "symfony/symfony": "^5.4.49",
         "symfony/apache-pack": "^1.0",
         "symfony/asset": "^7",
         "symfony/asset-mapper": "^7",
@@ -28,6 +29,7 @@
         "symfony/http-client": "^7",
         "symfony/intl": "^7",
         "symfony/mailer": "^7",
+        "symfony/messenger": "7.3.*",
         "symfony/monolog-bundle": "^3.7",
         "symfony/polyfill-intl-messageformatter": "^1.12",
         "symfony/runtime": "^7",
@@ -58,6 +60,7 @@
         "symfony/debug-bundle": "^7",
         "symfony/maker-bundle": "^1.36",
         "symfony/stopwatch": "^7",
+        "symfony/var-dumper": "7.3.*",
         "symfony/web-profiler-bundle": "^7"
     },
     "replace": {
