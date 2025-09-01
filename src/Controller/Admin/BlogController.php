@@ -82,8 +82,7 @@ final class BlogController extends AbstractController
 
         // See https://symfony.com/doc/current/form/multiple_buttons.html
         $form = $this->createForm(PostType::class, $post)
-            ->add('saveAndCreateNew', SubmitType::class)
-        ;
+            ->add('saveAndCreateNew', SubmitType::class);
 
         $form->handleRequest($request);
 
