@@ -59,6 +59,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: Types::STRING)]
     private ?string $password = null;
 
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $createdAt = null;
+
+    #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $modifiedAt = null;
+
     /**
      * @var string[]
      */
@@ -113,6 +119,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setPassword(string $password): void
     {
         $this->password = $password;
+    }
+
+    #[ORM\PrePersist]
+    public function setCreatedAt(): void
+    {
+        if ($this->createdAt === null) {
+            $this->createdAt = new \DateTimeImmutable();
+        }
+    }
+
+    public function getCreatedAt(): ?\DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    #[ORM\PreUpdate]
+    public function setModifiedAt(): void
+    {
+        $this->modifiedAt = new \DateTimeImmutable();
+    }
+
+    public function getModifiedAt(): ?\DateTimeImmutable
+    {
+        return $this->modifiedAt;
     }
 
     /**
