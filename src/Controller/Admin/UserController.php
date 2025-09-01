@@ -16,6 +16,7 @@ use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -82,7 +83,8 @@ final class UserController extends AbstractController
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
-        SerializerInterface $serializer
+        SerializerInterface $serializer,
+        UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
         $user = new User();
         $data = json_decode($request->getContent(), true);
@@ -100,7 +102,14 @@ final class UserController extends AbstractController
             return $this->json(['error' => 'Password is required'], Response::HTTP_BAD_REQUEST);
         }
 
+        $hashedPassword = $passwordHasher->hashPassword(
+            $user,
+            $data['password']
+        );
+
         $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $user]);
+
+        $user->setPassword($hashedPassword);
 
         $entityManager->persist($user);
         $entityManager->flush();
@@ -111,9 +120,15 @@ final class UserController extends AbstractController
     /**
      * Finds and displays a User entity.
      */
-    #[Route('/{id:user}', name: 'admin_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
-    public function show(User $user, SerializerInterface $serializer): JsonResponse
+    #[Route('/{id}', name: 'admin_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
+    public function show(int $id, UserRepository $userRepository, SerializerInterface $serializer): JsonResponse
     {
+        $user = $userRepository->find($id);
+
+        if (!$user) {
+            return new JsonResponse(['code' => Response::HTTP_NOT_FOUND,  'error' => 'User not found'], Response::HTTP_NOT_FOUND);
+        }
+
         return new JsonResponse($serializer->serialize($user, 'json'), Response::HTTP_OK, [], true);
     }
 
