@@ -1,0 +1,29 @@
+App\Entity\User:
+    type: entity
+    properties:
+        id:
+            type: integer
+            id: true
+        fullName:
+            type: string
+            length: 255
+        username:
+            type: string
+            length: 50
+            unique: true
+        email:
+            type: string
+            length: 255
+            unique: true
+        password:
+            type: string
+            length: 255
+        createdAt:
+            type: datetime_immutable
+        modifiedAt:
+            type: datetime_immutable
+        roles:
+            type: json
+    lifecycleCallbacks:
+        prePersist: ['setCreatedAt']
+        preUpdate: ['setModifiedAt']
