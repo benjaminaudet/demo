@@ -11,9 +11,12 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Post;
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Utils\JsonResponseFactory;
+use App\Utils\User\UserUtils;
+use App\Utils\User\UserHttpResponseMessage;
+
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
@@ -87,19 +90,20 @@ final class UserController extends AbstractController
         UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
         $user = new User();
-        $data = json_decode($request->getContent(), true);
+        $data = $request->getContent();
+        $jsonData = json_decode($request->getContent(), true);
 
-        if (!isset($data['email']) || empty($data['email'])) {
-            return $this->json(['error' => 'Email is required'], Response::HTTP_BAD_REQUEST);
+        if (!isset($jsonData['email']) || empty($jsonData['email'])) {
+            return $this->json(['error' => UserHttpResponseMessage::EMAIL_REQUIRED], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($data['username']) || empty($data['username'])) {
-            return $this->json(['error' => 'Username is required'], Response::HTTP_BAD_REQUEST);
+        if (!isset($jsonData['username']) || empty($jsonData['username'])) {
+            return $this->json(['error' => UserHttpResponseMessage::USERNAME_REQUIRED], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($data['fullName']) || empty($data['fullName'])) {
-            return $this->json(['error' => 'Full name is required'], Response::HTTP_BAD_REQUEST);
+        if (!isset($jsonData['fullName']) || empty($jsonData['fullName'])) {
+            return $this->json(['error' => UserHttpResponseMessage::FULLNAME_REQUIRED], Response::HTTP_BAD_REQUEST);
         }
-        if (!isset($data['password']) || empty($data['password'])) {
-            return $this->json(['error' => 'Password is required'], Response::HTTP_BAD_REQUEST);
+        if (!isset($jsonData['password']) || empty($jsonData['password'])) {
+            return $this->json(['error' => UserHttpResponseMessage::PASSWORD_REQUIRED], Response::HTTP_BAD_REQUEST);
         }
 
         $hashedPassword = $passwordHasher->hashPassword(
@@ -107,7 +111,7 @@ final class UserController extends AbstractController
             $data['password']
         );
 
-        $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $user]);
+        UserUtils::deserialize($data, $user, $serializer);
 
         $user->setPassword($hashedPassword);
 
@@ -118,60 +122,55 @@ final class UserController extends AbstractController
     }
 
     /**
-     * Finds and displays a User entity.
+     * Finds and displays a User entity found by id.
      */
     #[Route('/{id}', name: 'admin_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
     public function show(int $id, UserRepository $userRepository, SerializerInterface $serializer): JsonResponse
     {
-        $user = $userRepository->find($id);
+        $user = UserUtils::getUser($id, $userRepository);
 
         if (!$user) {
-            return new JsonResponse(['code' => Response::HTTP_NOT_FOUND,  'error' => 'User not found'], Response::HTTP_NOT_FOUND);
+            return JsonResponseFactory::notFound(UserHttpResponseMessage::USER_NOT_FOUND);
         }
 
-        return new JsonResponse($serializer->serialize($user, 'json'), Response::HTTP_OK, [], true);
+        return new JsonResponse(UserUtils::serialize($user, $serializer), Response::HTTP_OK, [], true);
     }
 
     /**
      * Displays a form to edit an existing User entity.
      */
-    #[Route('/{id:user}/edit', name: 'admin_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
-    public function edit(Request $request, User $user, UserRepository $users, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
+    #[Route('/{id}/edit', name: 'admin_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
+    public function edit(int $id, Request $request, UserRepository $userRepository, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
     {
-        $foundUserToEdit = $users->findOneBy(['id' => $user->getId()]);
+        $user = UserUtils::getUser($id, $userRepository);
 
-        $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $foundUserToEdit]);
+        if (!$user) {
+            return JsonResponseFactory::notFound(UserHttpResponseMessage::USER_NOT_FOUND);
+        }
 
-        $entityManager->persist($foundUserToEdit);
+        $serializer->deserialize($request->getContent(), User::class, 'json', ['object_to_populate' => $user]);
+
+        $entityManager->persist($user);
         $entityManager->flush();
 
-        return new JsonResponse($serializer->serialize($foundUserToEdit, 'json'), Response::HTTP_OK, [], true);
+        return new JsonResponse(UserUtils::serialize($user, $serializer), Response::HTTP_OK, [], true);
     }
 
     /**
-     * Deletes a Post entity.
+     * Deletes a User entity.
      */
-    #[Route('/{id:post}/delete', name: 'admin_post_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['POST'])]
-    #[IsGranted('delete', subject: 'post')]
-    public function delete(Request $request, Post $post, EntityManagerInterface $entityManager): Response
+    #[Route('/{id}', name: 'admin_user_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['DELETE'])]
+    public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $entityManager): Response
     {
-        /** @var string|null $token */
-        $token = $request->getPayload()->get('token');
+        $user = UserUtils::getUser($id, $userRepository);
 
-        if (!$this->isCsrfTokenValid('delete', $token)) {
-            return $this->redirectToRoute('admin_post_index', [], Response::HTTP_SEE_OTHER);
+        if (!$user) {
+            return JsonResponseFactory::notFound(UserHttpResponseMessage::USER_NOT_FOUND);
         }
 
-        // Delete the tags associated with this blog post. This is done automatically
-        // by Doctrine, except for SQLite (the database used in this application)
-        // because foreign key support is not enabled by default in SQLite
-        $post->getTags()->clear();
-
-        $entityManager->remove($post);
+        $entityManager->remove($user);
         $entityManager->flush();
 
-        $this->addFlash('success', 'post.deleted_successfully');
-
-        return $this->redirectToRoute('admin_post_index', [], Response::HTTP_SEE_OTHER);
+        return JsonResponseFactory::deleted(UserHttpResponseMessage::USER_DELETED);
     }
 }
