@@ -12,4 +12,6 @@ class HttpResponseMessage
     public const SUCCESS = 'Success';
     public const UNAUTHORIZED = 'Unauthorized';
     public const FORBIDDEN = 'Access denied';
+    public const BAD_REQUEST = 'Bad request';
+    public const CONFLICT = 'Conflict';
 }

@@ -36,4 +36,14 @@ class JsonResponseFactory
     {
         return self::success(['message' => $message], JsonResponse::HTTP_NO_CONTENT);
     }
+
+    public static function badRequest(string $message = HttpResponseMessage::BAD_REQUEST): JsonResponse
+    {
+        return self::error($message, JsonResponse::HTTP_BAD_REQUEST);
+    }
+
+    public static function conflict(string $message = HttpResponseMessage::CONFLICT): JsonResponse
+    {
+        return self::error($message, JsonResponse::HTTP_CONFLICT);
+    }
 }

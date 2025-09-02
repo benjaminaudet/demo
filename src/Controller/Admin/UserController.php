@@ -57,7 +57,8 @@ final class UserController extends AbstractController
     #[Route('/', name: 'admin_index', methods: ['GET'])]
     #[Route('/', name: 'admin_user_index', methods: ['GET'])]
     public function index(
-        UserRepository $users
+        UserRepository $users,
+        SerializerInterface $serializer,
     ): Response {
         $allUsers = $users->findAll(['createdAt' => 'DESC']);
 
@@ -77,48 +78,66 @@ final class UserController extends AbstractController
 
     /**
      * Creates a new User entity.
-     *
-     * NOTE: the Method annotation is optional, but it's a recommended practice
-     * to constraint the HTTP methods each controller responds to (by default
-     * it responds to all methods).
      */
     #[Route('/new', name: 'admin_user_new', methods: ['POST'])]
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
+        UserRepository $userRepository,
         SerializerInterface $serializer,
         UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
-        $user = new User();
         $data = $request->getContent();
-        $jsonData = json_decode($request->getContent(), true);
+        $jsonData = json_decode($data, true);
 
         if (!isset($jsonData['email']) || empty($jsonData['email'])) {
-            return $this->json(['error' => UserHttpResponseMessage::EMAIL_REQUIRED], Response::HTTP_BAD_REQUEST);
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::EMAIL_REQUIRED);
         }
         if (!isset($jsonData['username']) || empty($jsonData['username'])) {
-            return $this->json(['error' => UserHttpResponseMessage::USERNAME_REQUIRED], Response::HTTP_BAD_REQUEST);
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::USERNAME_REQUIRED);
         }
         if (!isset($jsonData['fullName']) || empty($jsonData['fullName'])) {
-            return $this->json(['error' => UserHttpResponseMessage::FULLNAME_REQUIRED], Response::HTTP_BAD_REQUEST);
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::FULLNAME_REQUIRED);
         }
         if (!isset($jsonData['password']) || empty($jsonData['password'])) {
-            return $this->json(['error' => UserHttpResponseMessage::PASSWORD_REQUIRED], Response::HTTP_BAD_REQUEST);
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::PASSWORD_REQUIRED);
         }
+
+        if ($userRepository->findOneBy(['email' => $jsonData['email']])) {
+            return JsonResponseFactory::conflict(UserHttpResponseMessage::EMAIL_ALREADY_EXISTS);
+        }
+        if ($userRepository->findOneBy(['username' => $jsonData['username']])) {
+            return JsonResponseFactory::conflict(UserHttpResponseMessage::USERNAME_ALREADY_EXISTS);
+        }
+        if ($userRepository->findOneBy(['fullName' => $jsonData['fullName']])) {
+            return JsonResponseFactory::conflict(UserHttpResponseMessage::FULLNAME_ALREADY_EXISTS);
+        }
+
+        $user = User::createFromPayload($jsonData);
 
         $hashedPassword = $passwordHasher->hashPassword(
             $user,
-            $data['password']
+            $jsonData['password']
         );
-
-        UserUtils::deserialize($data, $user, $serializer);
 
         $user->setPassword($hashedPassword);
 
         $entityManager->persist($user);
         $entityManager->flush();
 
-        return new JsonResponse($serializer->serialize($user, 'json'), Response::HTTP_CREATED, [], true);
+        return new JsonResponse(
+            $serializer->serialize(
+                [
+                    "username" => $user->getUsername(),
+                    "fullName" => $user->getFullName(),
+                    "email" => $user->getEmail()
+                ],
+                'json'
+            ),
+            Response::HTTP_CREATED,
+            [],
+            true
+        );
     }
 
     /**
@@ -137,7 +156,7 @@ final class UserController extends AbstractController
     }
 
     /**
-     * Displays a form to edit an existing User entity.
+     * Edits an existing User entity.
      */
     #[Route('/{id}/edit', name: 'admin_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
     public function edit(int $id, Request $request, UserRepository $userRepository, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
@@ -160,7 +179,7 @@ final class UserController extends AbstractController
      * Deletes a User entity.
      */
     #[Route('/{id}', name: 'admin_user_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['DELETE'])]
-    public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $entityManager): Response
+    public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         $user = UserUtils::getUser($id, $userRepository);
 

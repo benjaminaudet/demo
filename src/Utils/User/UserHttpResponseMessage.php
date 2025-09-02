@@ -13,4 +13,7 @@ class UserHttpResponseMessage
     public const USERNAME_REQUIRED = 'Username is required';
     public const FULLNAME_REQUIRED = 'Full name is required';
     public const PASSWORD_REQUIRED = 'Password is required';
+    public const EMAIL_ALREADY_EXISTS = 'Email already exists';
+    public const USERNAME_ALREADY_EXISTS = 'Username already exists';
+    public const FULLNAME_ALREADY_EXISTS = 'Full name already exists';
 }

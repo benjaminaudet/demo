@@ -14,7 +14,7 @@ class UserUtils
         return $serializer->serialize($user, 'json');
     }
 
-    public static function deserialize(mixed $data, User $user, SerializerInterface $serializer): array
+    public static function deserialize(mixed $data, User $user, SerializerInterface $serializer): User
     {
         return $serializer->deserialize($data, User::class, 'json', ['object_to_populate' => $user]);
     }
