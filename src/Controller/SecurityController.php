@@ -12,13 +12,22 @@
 namespace App\Controller;
 
 use App\Entity\User;
+use App\Entity\AccessToken;
+use App\Utils\JsonResponseFactory;
+use App\Utils\User\UserHttpResponseMessage;
+use App\Repository\UserRepository;
+use App\Repository\AccessTokenRepository;
+
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Security\Http\Util\TargetPathTrait;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Doctrine\ORM\EntityManagerInterface;
 
 /**
  * Controller used to manage the application security.
@@ -58,5 +67,47 @@ final class SecurityController extends AbstractController
             // last authentication error (if any)
             'error' => $helper->getLastAuthenticationError(),
         ]);
+    }
+
+    #[Route('/api/oauth/token', name: 'security_api_oauth_create_token', methods: ['POST'])]
+    public function createToken(
+        Request $request,
+        UserRepository $userRepository,
+        AccessTokenRepository $accessTokenRepository,
+        UserPasswordHasherInterface $passwordHasher,
+        EntityManagerInterface $entityManager,
+    ): JsonResponse {
+        $data = $request->getContent();
+        $jsonData = json_decode($data, true);
+
+        if (!isset($jsonData['email']) || empty($jsonData['email'])) {
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::EMAIL_REQUIRED);
+        }
+        if (!isset($jsonData['password']) || empty($jsonData['password'])) {
+            return JsonResponseFactory::badRequest(UserHttpResponseMessage::PASSWORD_REQUIRED);
+        }
+
+        $user = $userRepository->findOneByEmail($jsonData['email']);
+        if (!$user || !$passwordHasher->isPasswordValid($user, $jsonData['password'])) {
+            return JsonResponseFactory::unauthorized(UserHttpResponseMessage::INVALID_CREDENTIALS);
+        }
+
+        $existingToken = $accessTokenRepository->findOneBy(['user_id' => $user->getId()]);
+        if ($existingToken && $existingToken->isValid()) {
+            return new JsonResponse(['token' => $existingToken->getToken()]);
+        }
+
+        $accessToken = new AccessToken($user->getId());
+
+        $entityManager->persist($accessToken);
+        $entityManager->flush();
+
+        return new JsonResponse(['token' => $accessToken->getToken()]);
+    }
+
+    #[Route('/api/oauth/revoke_token', name: 'security_api_oauth_revoke_token')]
+    public function revokeToken(Request $request): JsonResponse
+    {
+        return new JsonResponse(['message' => 'Token revoked']);
     }
 }

@@ -14,6 +14,7 @@ namespace App\Entity;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -39,13 +40,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     final public const ROLE_USER = 'ROLE_USER';
     final public const ROLE_ADMIN = 'ROLE_ADMIN';
 
+    public function __construct(
+        ?string $fullName = null,
+        ?string $username = null,
+        ?string $email = null,
+        ?string $password = null
+    ) {
+        $this->fullName = $fullName;
+        $this->username = $username;
+        $this->email = $email;
+        $this->password = $password;
+    }
+
     public static function createFromPayload(array $data): self
     {
         return new self(
-            $data['fullName'] ?? null,
-            $data['username'] ?? null,
-            $data['email'] ?? null,
-            $data['password'] ?? null
+            $data['fullName'],
+            $data['username'],
+            $data['email'],
+            $data['password']
         );
     }
 

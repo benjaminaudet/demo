@@ -20,6 +20,8 @@ security:
             security: false
 
         main:
+            access_token:
+                token_handler: App\Security\AccessTokenHandler
             # this firewall does not have a 'pattern' option because it applies to all URLs
             lazy: true
             provider: database_users
