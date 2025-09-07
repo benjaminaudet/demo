@@ -12,10 +12,10 @@
 namespace App\Security;
 
 use App\Repository\AccessTokenRepository;
-
+use App\Utils\HttpResponseMessage;
+use App\Utils\JsonResponseFactory;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
@@ -23,12 +23,12 @@ use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
-use Symfony\Component\Security\Core\Exception\BadCredentialsException;
+use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
 /**
  * @see https://symfony.com/doc/current/security/custom_authenticator.html
  */
-class AccessTokenAuthenticator extends AbstractAuthenticator
+class AccessTokenAuthenticator extends AbstractAuthenticator implements AuthenticationEntryPointInterface
 {
 
     public function __construct(
@@ -42,6 +42,11 @@ class AccessTokenAuthenticator extends AbstractAuthenticator
     public function supports(Request $request): ?bool
     {
         return $request->headers->has('Authorization');
+    }
+
+    public function start(Request $request, ?AuthenticationException $authException = null): JsonResponse
+    {
+        return JsonResponseFactory::unauthorized(HttpResponseMessage::AUTH_HEADER_REQUIRED);
     }
 
     public function authenticate(Request $request): Passport
@@ -64,13 +69,13 @@ class AccessTokenAuthenticator extends AbstractAuthenticator
         return new SelfValidatingPassport(new UserBadge($accessToken->getUser()->getUserIdentifier()));
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?JsonResponse
     {
         // on success, let the request continue
         return null;
     }
 
-    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
+    public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?JsonResponse
     {
         $data = [
             // you may want to customize or obfuscate the message first
@@ -80,7 +85,7 @@ class AccessTokenAuthenticator extends AbstractAuthenticator
             // $this->translator->trans($exception->getMessageKey(), $exception->getMessageData())
         ];
 
-        return new JsonResponse($data, Response::HTTP_UNAUTHORIZED);
+        return JsonResponseFactory::unauthorized(HttpResponseMessage::UNAUTHORIZED);
     }
 
     // public function start(Request $request, ?AuthenticationException $authException = null): Response

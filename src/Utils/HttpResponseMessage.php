@@ -14,4 +14,6 @@ class HttpResponseMessage
     public const FORBIDDEN = 'Access denied';
     public const BAD_REQUEST = 'Bad request';
     public const CONFLICT = 'Conflict';
+
+    public const AUTH_HEADER_REQUIRED = 'Authentication Required: Please provide a valid Authorization header.';
 }

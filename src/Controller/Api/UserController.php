@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace App\Controller\Admin;
+namespace App\Controller\Api;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
@@ -39,13 +39,13 @@ use Symfony\Component\Serializer\SerializerInterface;
  * @author Ryan Weaver <weaverryan@gmail.com>
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
-#[Route('/admin/user')]
+#[Route('/api/user')]
 final class UserController extends AbstractController
 {
     /**
      * Lists all User entities.
      */
-    #[Route('/', name: 'admin_index', methods: ['GET'])]
+    #[Route('/', name: 'api_index', methods: ['GET'])]
     public function index(
         UserRepository $users,
         SerializerInterface $serializer,
@@ -69,7 +69,7 @@ final class UserController extends AbstractController
     /**
      * Creates a new User entity.
      */
-    #[Route('/new', name: 'admin_user_new', methods: ['POST'])]
+    #[Route('/new', name: 'api_user_new', methods: ['POST'])]
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
@@ -135,7 +135,7 @@ final class UserController extends AbstractController
     /**
      * Finds and displays a User entity found by id.
      */
-    #[Route('/{id}', name: 'admin_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
+    #[Route('/{id}', name: 'api_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
     public function show(int $id, UserRepository $userRepository, SerializerInterface $serializer): JsonResponse
     {
         $user = UserUtils::getUser($id, $userRepository);
@@ -150,7 +150,7 @@ final class UserController extends AbstractController
     /**
      * Edits an existing User entity.
      */
-    #[Route('/{id}/edit', name: 'admin_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
+    #[Route('/{id}/edit', name: 'api_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
     public function edit(int $id, Request $request, UserRepository $userRepository, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
     {
         $user = UserUtils::getUser($id, $userRepository);
@@ -170,7 +170,7 @@ final class UserController extends AbstractController
     /**
      * Deletes a User entity.
      */
-    #[Route('/{id}', name: 'admin_user_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['DELETE'])]
+    #[Route('/{id}', name: 'api_user_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['DELETE'])]
     public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
     {
         $user = UserUtils::getUser($id, $userRepository);
