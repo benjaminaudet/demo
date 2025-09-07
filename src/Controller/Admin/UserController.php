@@ -40,7 +40,6 @@ use Symfony\Component\Serializer\SerializerInterface;
  * @author Javier Eguiluz <javier.eguiluz@gmail.com>
  */
 #[Route('/admin/user')]
-#[IsGranted(User::ROLE_ADMIN)]
 final class UserController extends AbstractController
 {
     /**
@@ -78,6 +77,7 @@ final class UserController extends AbstractController
         SerializerInterface $serializer,
         UserPasswordHasherInterface $passwordHasher
     ): JsonResponse {
+
         $data = $request->getContent();
         $jsonData = json_decode($data, true);
 
@@ -105,6 +105,7 @@ final class UserController extends AbstractController
         }
 
         $user = User::createFromPayload($jsonData);
+
 
         $hashedPassword = $passwordHasher->hashPassword(
             $user,

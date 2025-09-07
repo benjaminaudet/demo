@@ -92,12 +92,12 @@ final class SecurityController extends AbstractController
             return JsonResponseFactory::unauthorized(UserHttpResponseMessage::INVALID_CREDENTIALS);
         }
 
-        $existingToken = $accessTokenRepository->findOneBy(['user_id' => $user->getId()]);
+        $existingToken = $accessTokenRepository->findOneBy(['user' => $user]);
         if ($existingToken && $existingToken->isValid()) {
             return new JsonResponse(['token' => $existingToken->getToken()]);
         }
 
-        $accessToken = new AccessToken($user->getId());
+        $accessToken = new AccessToken($user);
 
         $entityManager->persist($accessToken);
         $entityManager->flush();
