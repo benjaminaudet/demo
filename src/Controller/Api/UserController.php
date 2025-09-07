@@ -12,6 +12,7 @@
 namespace App\Controller\Api;
 
 use App\Entity\User;
+use App\Repository\AccessTokenRepository;
 use App\Repository\UserRepository;
 use App\Utils\JsonResponseFactory;
 use App\Utils\User\UserUtils;
@@ -25,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Requirement\Requirement;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -46,9 +48,9 @@ final class UserController extends AbstractController
      * Lists all User entities.
      */
     #[Route('/', name: 'api_index', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
     public function index(
         UserRepository $users,
-        SerializerInterface $serializer,
     ): Response {
         $allUsers = $users->findAll(['createdAt' => 'DESC']);
 
@@ -136,8 +138,11 @@ final class UserController extends AbstractController
      * Finds and displays a User entity found by id.
      */
     #[Route('/{id}', name: 'api_user_show', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['GET'])]
-    public function show(int $id, UserRepository $userRepository, SerializerInterface $serializer): JsonResponse
-    {
+    public function show(
+        int $id,
+        UserRepository $userRepository,
+        SerializerInterface $serializer
+    ): JsonResponse {
         $user = UserUtils::getUser($id, $userRepository);
 
         if (!$user) {
@@ -151,8 +156,13 @@ final class UserController extends AbstractController
      * Edits an existing User entity.
      */
     #[Route('/{id}/edit', name: 'api_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
-    public function edit(int $id, Request $request, UserRepository $userRepository, SerializerInterface $serializer, EntityManagerInterface $entityManager): JsonResponse
-    {
+    public function edit(
+        int $id,
+        Request $request,
+        UserRepository $userRepository,
+        SerializerInterface $serializer,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
         $user = UserUtils::getUser($id, $userRepository);
 
         if (!$user) {
@@ -171,12 +181,23 @@ final class UserController extends AbstractController
      * Deletes a User entity.
      */
     #[Route('/{id}', name: 'api_user_delete', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['DELETE'])]
-    public function delete(int $id, UserRepository $userRepository, EntityManagerInterface $entityManager): JsonResponse
-    {
+    #[IsGranted('ROLE_ADMIN')]
+    public function delete(
+        #[CurrentUser] User $currentUser,
+        int $id,
+        UserRepository $userRepository,
+        AccessTokenRepository $accessTokenRepository,
+        EntityManagerInterface $entityManager
+    ): JsonResponse {
         $user = UserUtils::getUser($id, $userRepository);
 
         if (!$user) {
             return JsonResponseFactory::notFound(UserHttpResponseMessage::USER_NOT_FOUND);
+        }
+
+        $accessToken = $accessTokenRepository->findOneBy(['user' => $user]);
+        if ($accessToken) {
+            $entityManager->remove($accessToken);
         }
 
         $entityManager->remove($user);
