@@ -31,6 +31,7 @@ security:
             provider: app_user_provider
             custom_authenticators:
                 - App\Security\AccessTokenAuthenticator
+            access_denied_handler: App\Security\AccessDeniedHandler
 
         main:
             # this firewall does not have a 'pattern' option because it applies to all URLs
