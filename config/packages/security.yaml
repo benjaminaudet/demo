@@ -4,6 +4,7 @@ security:
         # You can use regex to match URLs.
         # The following rule means that the /admin URL and all its sub-URLs
         # (because of the ^...$ anchors) are only accessible to users with the ROLE_ADMIN role
+        - { path: ^/en/api/user/new, roles: PUBLIC_ACCESS, method: [POST] }
         - { path: ^/en/api/oauth/token, roles: PUBLIC_ACCESS, method: [POST] }
         - { path: ^/en/api, roles: IS_AUTHENTICATED_FULLY }
     password_hashers:
