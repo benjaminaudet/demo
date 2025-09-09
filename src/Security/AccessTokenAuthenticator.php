@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
+use Symfony\Component\Security\Core\Exception\BadCredentialsException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
 use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
@@ -62,9 +63,9 @@ class AccessTokenAuthenticator extends AbstractAuthenticator implements Authenti
         }
 
         $accessToken = $this->repository->findOneBy(['token' => $accessToken]);
-        // if (null === $accessToken || !$accessToken->isValid()) {
-        //     throw new BadCredentialsException('Invalid credentials.');
-        // }
+        if (null === $accessToken || !$accessToken->isValid()) {
+            throw new BadCredentialsException('Invalid credentials.');
+        }
 
         return new SelfValidatingPassport(new UserBadge($accessToken->getUser()->getUserIdentifier()));
     }

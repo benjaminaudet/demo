@@ -18,7 +18,6 @@ services:
             # it here you can use the #[Autowire] attribute to inject it manually in the service constructor
             array $enabledLocales: '%kernel.enabled_locales%'
             string $defaultLocale: '%app.locale%'
-
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name
     App\:
