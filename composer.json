@@ -29,6 +29,7 @@
         "symfony/framework-bundle": "^7",
         "symfony/html-sanitizer": "^7",
         "symfony/http-client": "^7",
+        "symfony/http-kernel": "7.3.*",
         "symfony/intl": "^7",
         "symfony/mailer": "^7",
         "symfony/messenger": "7.3.*",

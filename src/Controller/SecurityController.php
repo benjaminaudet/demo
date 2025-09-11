@@ -17,6 +17,7 @@ use App\Utils\JsonResponseFactory;
 use App\Utils\User\UserHttpResponseMessage;
 use App\Repository\UserRepository;
 use App\Repository\AccessTokenRepository;
+use App\Security\CurrentToken;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -105,9 +106,34 @@ final class SecurityController extends AbstractController
         return new JsonResponse(['token' => $accessToken->getToken()]);
     }
 
-    #[Route('/api/oauth/revoke_token', name: 'security_api_oauth_revoke_token')]
-    public function revokeToken(Request $request): JsonResponse
-    {
+    #[Route('/api/oauth/revoke_token', name: 'security_api_oauth_revoke_token', methods: ['POST'])]
+    public function revokeToken(
+        Request $request,
+        AccessTokenRepository $accessTokenRepository,
+        UserRepository $userRepository,
+        EntityManagerInterface $entityManager,
+        #[CurrentToken] ?string $currentToken,
+    ): JsonResponse {
+        $data = $request->getContent();
+        $jsonData = json_decode($data, true);
+        $token = $jsonData['token'];
+
+        if (!isset($token) || empty($token)) {
+            return JsonResponseFactory::badRequest();
+        }
+
+        $foundAccessToken = $accessTokenRepository->findOneBy(['token' => $token]);
+
+        if (!$foundAccessToken) {
+            return JsonResponseFactory::notFound();
+        }
+        if ($currentToken != $foundAccessToken->getToken()) {
+            return JsonResponseFactory::forbidden();
+        }
+
+        $entityManager->remove($foundAccessToken);
+        $entityManager->flush();
+
         return new JsonResponse(['message' => 'Token revoked']);
     }
 }
