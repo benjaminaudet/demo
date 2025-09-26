@@ -98,6 +98,11 @@ final class SecurityController extends AbstractController
             return new JsonResponse(['token' => $existingToken->getToken()]);
         }
 
+        if ($existingToken && !$existingToken->isValid()) {
+            $entityManager->remove($existingToken);
+            $entityManager->flush();
+        }
+
         $accessToken = new AccessToken($user);
 
         $entityManager->persist($accessToken);
