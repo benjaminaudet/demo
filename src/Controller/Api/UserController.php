@@ -71,7 +71,7 @@ final class UserController extends AbstractController
     /**
      * Creates a new User entity.
      */
-    #[Route('/new', name: 'api_user_new', methods: ['POST'])]
+    #[Route('/', name: 'api_user_new', methods: ['POST'])]
     public function new(
         Request $request,
         EntityManagerInterface $entityManager,
@@ -155,7 +155,7 @@ final class UserController extends AbstractController
     /**
      * Edits an existing User entity.
      */
-    #[Route('/{id}/edit', name: 'api_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
+    #[Route('/{id}/', name: 'api_user_edit', requirements: ['id' => Requirement::POSITIVE_INT], methods: ['PATCH'])]
     public function edit(
         int $id,
         Request $request,
