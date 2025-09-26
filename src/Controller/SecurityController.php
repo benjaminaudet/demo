@@ -115,7 +115,6 @@ final class SecurityController extends AbstractController
     public function revokeToken(
         Request $request,
         AccessTokenRepository $accessTokenRepository,
-        UserRepository $userRepository,
         EntityManagerInterface $entityManager,
         #[CurrentToken] ?string $currentToken,
     ): JsonResponse {
